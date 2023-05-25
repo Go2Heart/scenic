@@ -9,3 +9,5 @@ t5x_pretrained/*
 log/*
 .vscode/*
 build/*
+
+scenic.egg-info/*
