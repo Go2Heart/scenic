@@ -13,7 +13,7 @@ from scenic.projects.vid2seq import models
 from scenic.projects.vid2seq import trainer
 from scenic.projects.vid2seq.datasets.dense_video_captioning_tfrecord_dataset import get_datasets
 # replace with the path to your JAVA bin location
-JRE_BIN_JAVA = path_to_jre_bin_java
+JRE_BIN_JAVA = "/nvme/wangyiqin/java/jre1.8.0_371/bin/java"
 
 flags.DEFINE_string('jre_path', '',
                     'Path to JRE.')
@@ -31,7 +31,7 @@ def get_model_cls(model_name: str) -> Callable[..., Any]:
 def main(rng: jnp.ndarray, config: ml_collections.ConfigDict, workdir: str,
          writer: metric_writers.MetricWriter):
   """Main function for the Vid2Seq project."""
-  jave_jre = JRE_BIN_JAVA
+  java_jre = JRE_BIN_JAVA
   os.environ['JRE_BIN_JAVA'] = java_jre
 
   # ensure arguments match

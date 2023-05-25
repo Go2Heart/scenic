@@ -146,7 +146,7 @@ def generate_sequence_example(video_id: str,
   return seq_example
 
 
-def main():
+def main(*args):
   # reads the input csv.
   input_csv = pd.read_csv(FLAGS.csv_path)
   if FLAGS.num_shards == -1:

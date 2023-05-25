@@ -346,6 +346,55 @@ def eval_step(
 
   return metrics_fn(decoded, batch), decoded
 
+def infer_step(
+  train_state: train_utils.TrainState,
+  batch: Batch,
+  model: models.EncoderWithT5DecoderModel,
+  config: ml_collections.ConfigDict,
+  debug: Optional[bool] = False,
+):
+    variables = {
+      'params': train_state.optimizer.target,
+      **train_state.model_state
+    }
+    if config.dataset_configs.return_as_dict:
+      encoder_inputs = batch['encoder_inputs']
+    else:
+      raise NotImplementedError
+
+    decoding_method = config.decoding.get('decoding_method', 'beamsearch')
+    if decoding_method == 'beamsearch':
+      decode_fn = models.beam_search
+    elif decoding_method == 'temperature_sample':
+      decode_fn = models.temperature_sample
+    else:
+      raise ValueError('Unrecognized decoding method.')
+    batch['decoder_inputs'] = {  # pytype: disable=container-type-mismatch  # jax-ndarray
+        'decoder_input_tokens': batch['text_indices'][..., :-1],
+        'decoder_target_tokens': batch['text_indices'][..., 1:]
+    }
+
+    #check encoder_inputs shape
+    # encoder_inputs['features'] = encoder_inputs['features'].squeeze(0)
+    print("encoder_inputs", encoder_inputs)
+    
+    decoded, _ = model.predict_batch_with_aux(
+        variables, {
+            'encoder_inputs': encoder_inputs,
+            'decoder_inputs': batch['decoder_inputs']
+        },
+        decode_fn,
+        num_decodes=config.decoding.get('num_decodes'),
+        alpha=config.decoding.get('alpha'),
+        decoding_method=decoding_method,
+        temperature=config.decoding.get('temperature'),
+        eos_id=1,
+        vocabulary_size=32128)
+
+    if debug:
+      logging.info('Shape of decoded in infer step is: %s', decoded.shape)
+
+    return None,decoded
 
 def pmapped_steps(model, config):
   """Returns the pmapped train and eval steps."""
@@ -436,6 +485,7 @@ def init_state(model: base_model.BaseModel, dataset: dataset_utils.Dataset,
   """Initialize the train state."""
 
   encoder_input_shape = dataset.meta_data['encoder_input_shape']
+  print("encoder_input_shape", encoder_input_shape)
   encoder_input_dtype = dataset.meta_data.get('encoder_input_dtype',
                                               jnp.float32)
   encoder_input_text_dtype = dataset.meta_data.get('encoder_input_text_dtype',
@@ -456,10 +506,12 @@ def init_state(model: base_model.BaseModel, dataset: dataset_utils.Dataset,
       encoder_input_spec[mod] = mod_spec
   else:
     encoder_input_spec = (encoder_input_shape, encoder_input_dtype)
+  print("encoder_input_spec", encoder_input_spec)
 
   decoder_input_spec = {
       k: (v, decoder_input_dtype) for k, v in decoder_input_shape.items()
   }
+  print("decoder_input_spec", decoder_input_spec)
 
   # Initialize model.
   rng, init_rng = jax.random.split(rng)
@@ -505,7 +557,7 @@ def init_state(model: base_model.BaseModel, dataset: dataset_utils.Dataset,
       init_checkpoint_path = config.init_from.get('checkpoint_path')
       step = config.init_from.get('step')
       restored_train_state = pretrain_utils.restore_pretrained_checkpoint(
-          init_checkpoint_path, train_state, assert_exist=True, step=step)
+          init_checkpoint_path, train_state, assert_exist=False, step=step)
 
       # init T5 encoder if in model but not in ckpt
       if config.model.encoder.encoder_type in [

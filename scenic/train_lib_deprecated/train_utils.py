@@ -108,7 +108,7 @@ def initialize_model(
   @functools.partial(jax.jit, backend='cpu')
   def _initialize_model(rngs):
     """Initialization function to be jitted."""
-    init_model_state, init_params = flax.core.pop(model_def.init(
+    init_model_state, init_params = flax.core.FrozenDict.pop(model_def.init(
         rngs, *dummy_input, train=train, debug=False), 'params')
     # Set bias in the head to low value, such that loss is small initially.
     if config.get('init_head_bias', None) is not None:
@@ -205,10 +205,10 @@ def initialize_model_with_pytree(
     # If dummy_input is a dict, we feed inputs as keyword arguments, otherwise
     # feed as position arguments.
     if isinstance(dummy_input, dict):
-      init_model_state, init_params = flax.core.pop(model_def.init(
+      init_model_state, init_params = flax.core.FrozenDict.pop(model_def.init(
           rngs, **dummy_input, train=False, debug=False), 'params')
     else:
-      init_model_state, init_params = flax.core.pop(model_def.init(
+      init_model_state, init_params = flax.core.FrozenDict.pop(model_def.init(
           rngs, *dummy_input, train=False, debug=False), 'params')
     # Set bias in the head to low value, such that loss is small initially.
     if config.get('init_head_bias', None) is not None:
@@ -365,7 +365,7 @@ def initialize_multitask_model(
   @functools.partial(jax.jit, backend='cpu')
   def _initialize_model(rngs):
     """Initialization function to be jitted."""
-    init_model_state, init_params = flax.core.pop(nn.init(
+    init_model_state, init_params = flax.core.FrozenDict.pop(nn.init(
         fn=init_fn, module=model_def)(rngs), 'params')
     # Set bias in the head to low value, such that loss is small initially.
     if (config.get('init_head_bias', None) is not None and

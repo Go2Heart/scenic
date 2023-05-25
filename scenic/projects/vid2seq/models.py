@@ -67,8 +67,13 @@ class CatEncoder(nn.Module):
                encoder_segment_ids=None,
                enable_dropout=True):
     if features is not None:
+      
+      # import pdb
+      # pdb.set_trace()
+      # jax.debug.print("features: {x}", x=features)
       visual_embeddings = self.visual_encoder(
           features, train=enable_dropout)
+      # jax.debug.print("visual_embeddings {x}", x=visual_embeddings)
       if self.proj_dim != 768:
         visual_embeddings = self.proj(visual_embeddings)
       if encoder_input_tokens is not None:
@@ -76,6 +81,7 @@ class CatEncoder(nn.Module):
             encoder_input_tokens=encoder_input_tokens,
             encoder_segment_ids=None,
             enable_dropout=enable_dropout)
+        # jax.debug.print("encoded {x}", x=x)
         x = {'encoded': x, 'mask': encoder_input_tokens > 0}
         cat = jnp.concatenate([visual_embeddings, x['encoded']], axis=1)
         cat_mask = jnp.concatenate([
@@ -96,6 +102,8 @@ class CatEncoder(nn.Module):
       cat_mask = encoder_input_tokens > 0
     else:
       raise NotImplementedError
+    # jax.debug.print("cat: {x}", x=cat)
+
     return {'encoded': cat, 'mask': cat_mask}
 
 
@@ -224,12 +232,15 @@ class DenseVideoCaptioningModule(EncoderDecoderModule):
              decode=False,
              max_decode_length=None):
 
-    return self.decoder(
+    decoded = self.decoder(
         encoded,
         **decoder_inputs,
         enable_dropout=train,
         decode=decode,
         max_decode_length=max_decode_length)
+    # jax.debug.print("decoded: {x}", x=decoded)
+
+    return decoded
 
   def __call__(self,
                encoder_inputs,
@@ -254,6 +265,9 @@ class DenseVideoCaptioningModule(EncoderDecoderModule):
       if 'encoder_input_tokens' not in decoder_inputs:
         decoder_inputs['encoder_input_tokens'] = jnp.ones(encoded.shape[:-1])  # pytype: disable=attribute-error
 
+    # import pdb
+    # pdb.set_trace()
+    
     # joint time and text
     return {'logits': self.decode(
         encoded,
@@ -376,6 +390,8 @@ class EncoderWithT5DecoderModel(base_model.BaseModel):
         train=False,
         mutable=['cache'])
     cache = variables_with_cache['cache']
+    # jax.debug.print("variables_with_cache: {x}", x=variables_with_cache)
+
 
     # Prepare transformer fast-decoder call for beam search: for beam search, we
     # need to set up our decoder model to handle a batch size equal to
@@ -391,6 +407,7 @@ class EncoderWithT5DecoderModel(base_model.BaseModel):
         batch['encoder_inputs'],
         train=False,
         method=self.flax_model.encode)
+    # jax.debug.print("non_expanded_encoded: {x}", x=non_expanded_encoded)
     encoded_inputs = jax.tree_map(beam_expand_fn, non_expanded_encoded)
     if isinstance(encoded_inputs, dict):  # set decoder mask
       batch['decoder_inputs']['encoder_input_tokens'] = encoded_inputs['mask']
@@ -445,7 +462,9 @@ class EncoderWithT5DecoderModel(base_model.BaseModel):
           num_decodes=num_decodes,
           cache_offset=0,
           **decoder_params)
-
+    # import pdb
+    # pdb.set_trace()
+    # jax.debug.print("decodes: {x} scores: {y}", x=decodes, y=scores)
     # Beam search returns [n_batch, n_beam, n_length] with beam dimension sorted
     # in increasing order of log-probability.
     # Return the highest scoring beam sequence.

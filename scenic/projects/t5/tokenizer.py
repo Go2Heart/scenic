@@ -21,7 +21,7 @@ import tensorflow as tf
 import tensorflow_text
 
 # pylint: disable=line-too-long
-SP_MODEL_PATH = 'gs://t5-data/vocabs/cc_all.32000.100extra/sentencepiece.model'
+SP_MODEL_PATH = '/mnt/petrelfs/wangyiqin/vid_cap/scenic/t5x_pretrained/vocabs-cc_all.32000.100extra-sentencepiece.model'
 # pylint: enable=line-too-long
 
 

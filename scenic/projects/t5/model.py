@@ -35,7 +35,7 @@ CHECKPOINTS = {
     't5_1_1_small':
         'gs://t5-data/pretrained_models/t5x/t5_1_1_small/checkpoint_1000000/',
     't5_1_1_base':
-        'gs://t5-data/pretrained_models/t5x/t5_1_1_base/checkpoint_1000000/',
+        '/mnt/petrelfs/wangyiqin/vid_cap/scenic/t5x_pretrained/t5x-base/',
     't5_1_1_large':
         'gs://t5-data/pretrained_models/t5x/t5_1_1_large/checkpoint_1000000/',
     't5_1_1_xl':
